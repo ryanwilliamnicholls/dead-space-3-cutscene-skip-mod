@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28803.352
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "universal_trainer_for_testing", "universal_trainer_for_testing.csproj", "{1E6C8237-8047-4353-93A0-327F0EDBE1B2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dead_space_3_cutscene_skip_mod", "dead_space_3_cutscene_skip_mod.csproj", "{1E6C8237-8047-4353-93A0-327F0EDBE1B2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
