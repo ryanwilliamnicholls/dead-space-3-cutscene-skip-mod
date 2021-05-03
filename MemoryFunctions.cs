@@ -269,13 +269,73 @@ namespace MemoryReads64
 			return Value;
 		}
 
-		/// <summary>
-		/// Reads an integer from external process memory.
-		/// </summary>
-		/// <param name="Proc">Process for which to read.</param>
-		/// <param name="pointerInstance">Pointer object containing adresses and offsets.</param>
-		/// <returns>Integer read from memory or 0 (on error).</returns>
-		public static int ReadPointerInteger(Process Proc, Pointer pointerInstance)
+        /// <summary>
+        /// Reads a byte from external process memory.
+        /// </summary>
+        /// <param name="Proc">Process for which to read.</param>
+        /// <param name="pointerInstance">Pointer object containing adresses and offsets.</param>
+        /// <returns>Byte read from memory or 0 (on error).</returns>
+        public static byte[] ReadPointerByteArray(Process Proc, Pointer pointerInstance, int length)
+        {
+            byte[] Value = new byte[length];
+            checked
+            {
+
+                try
+                {
+                    if (Proc != null)
+                    {
+                        if (pointerInstance.BaseModuleAddress != 0x0)
+                        {
+                            for (int i = 0; i < length; i++)
+                            {
+                                Int64 Bytes = 0;
+                                int Handle = OpenProcess(PROCESS_ALL_ACCESS, 0, Proc.Id);
+                                Int64 Pointer = pointerInstance.BaseModuleAddress + pointerInstance.BaseOffset + (i * (pointerInstance.IsPtrFor64BitProcess ? 2 : 1));
+
+                                if (Handle != 0)
+                                {
+                                    if (pointerInstance.IsDirectPointer)
+                                    {
+                                        ReadProcessMemoryByte((int)Handle, Pointer, ref Value[i], 1, ref Bytes);
+                                        CloseHandle(Handle);
+                                    }
+                                    else
+                                    {
+                                        foreach (long j in pointerInstance.Offsets)
+                                        {
+                                            ReadProcessMemoryInteger64((int)Handle, Pointer, ref Pointer, pointerInstance.IsPtrFor64BitProcess ? 8 : 4, ref Bytes);
+                                            Pointer += j;
+                                        }
+                                        ReadProcessMemoryByte((int)Handle, Pointer, ref Value[i], 1, ref Bytes);
+                                        CloseHandle(Handle);
+                                    }
+                                }
+                            }
+                        }
+                    
+                    else
+                    {
+                        GetModuleBaseAddress(Proc, pointerInstance);
+                    }
+					}
+				}
+
+                catch
+                { }
+				return Value;
+
+
+			}
+        }
+
+        /// <summary>
+        /// Reads an integer from external process memory.
+        /// </summary>
+        /// <param name="Proc">Process for which to read.</param>
+        /// <param name="pointerInstance">Pointer object containing adresses and offsets.</param>
+        /// <returns>Integer read from memory or 0 (on error).</returns>
+        public static int ReadPointerInteger(Process Proc, Pointer pointerInstance)
 		{
 			int Value = 0;
 			checked
@@ -431,7 +491,7 @@ namespace MemoryReads64
 		/// <param name="Proc">Process to which to write.</param>
 		/// <param name="pointerInstance">Pointer object containing adresses and offsets.</param>
 		/// <param name="Value">Value to write to memory.</param>
-		public static void WritePointerByte(Process Proc, Pointer pointerInstance, byte Value)
+		public static void WritePointerByteArray(Process Proc, Pointer pointerInstance, byte[] Value)
 		{
 			checked
 			{
@@ -441,26 +501,28 @@ namespace MemoryReads64
 					{
 						if (pointerInstance.BaseModuleAddress != 0x0)
 						{
-							Int64 Bytes = 0;
-							int Handle = OpenProcess(PROCESS_ALL_ACCESS, 0, Proc.Id);
-							Int64 Pointer = pointerInstance.BaseModuleAddress + pointerInstance.BaseOffset;
+							for(int i = 0; i < Value.Length; i++) { 
+								Int64 Bytes = 0;
+								int Handle = OpenProcess(PROCESS_ALL_ACCESS, 0, Proc.Id);
+								Int64 Pointer = pointerInstance.BaseModuleAddress + pointerInstance.BaseOffset + (i * (pointerInstance.IsPtrFor64BitProcess ? 2 : 1));
 
-							if (Handle != 0)
-							{
-								if (pointerInstance.IsDirectPointer)
+								if (Handle != 0)
 								{
-									WriteProcessMemoryByte(Handle, Pointer, ref Value, 1, ref Bytes);
-									CloseHandle(Handle);
-								}
-								else
-								{
-									foreach (int i in pointerInstance.Offsets)
+									if (pointerInstance.IsDirectPointer)
 									{
-										ReadProcessMemoryInteger64((int)Handle, Pointer, ref Pointer, pointerInstance.IsPtrFor64BitProcess ? 8 : 4, ref Bytes);
-										Pointer += i;
+										WriteProcessMemoryByte(Handle, Pointer, ref Value[i], 1, ref Bytes);
+										CloseHandle(Handle);
 									}
-									WriteProcessMemoryByte(Handle, Pointer, ref Value, 1, ref Bytes);
-									CloseHandle(Handle);
+									else
+									{
+										foreach (int j in pointerInstance.Offsets)
+										{
+											ReadProcessMemoryInteger64((int)Handle, Pointer, ref Pointer, pointerInstance.IsPtrFor64BitProcess ? 8 : 4, ref Bytes);
+											Pointer += j;
+										}
+										WriteProcessMemoryByte(Handle, Pointer, ref Value[i], 1, ref Bytes);
+										CloseHandle(Handle);
+									}
 								}
 							}
 						}
@@ -475,155 +537,6 @@ namespace MemoryReads64
 			}
 		}
 
-		/// <summary>
-		/// Write an integer to external process memory.
-		/// </summary>
-		/// <param name="Proc">Process to which to write.</param>
-		/// <param name="pointerInstance">Pointer object containing adresses and offsets.</param>
-		/// <param name="Value">Value to write to memory.</param>
-		public static void WritePointerInteger(Process Proc, Pointer pointerInstance, int Value)
-		{
-			checked
-			{
-				try
-				{
-					if (Proc != null)
-					{
-						if (pointerInstance.BaseModuleAddress != 0x0)
-						{
-							Int64 Bytes = 0;
-							int Handle = OpenProcess(PROCESS_ALL_ACCESS, 0, Proc.Id);
-							Int64 Pointer = pointerInstance.BaseModuleAddress + pointerInstance.BaseOffset;
-
-							if (Handle != 0)
-							{
-								if (pointerInstance.IsDirectPointer)
-								{
-									WriteProcessMemoryInteger(Handle, Pointer, ref Value, 4, ref Bytes);
-									CloseHandle(Handle);
-								}
-								else
-								{
-									foreach (int i in pointerInstance.Offsets)
-									{
-										ReadProcessMemoryInteger64((int)Handle, Pointer, ref Pointer, pointerInstance.IsPtrFor64BitProcess ? 8 : 4, ref Bytes);
-										Pointer += i;
-									}
-									WriteProcessMemoryInteger(Handle, Pointer, ref Value, 4, ref Bytes);
-									CloseHandle(Handle);
-								}
-							}
-						}
-						else
-						{
-							GetModuleBaseAddress(Proc, pointerInstance);
-						}
-					}
-				}
-				catch
-				{ }
-			}
-		}
-
-		/// <summary>
-		/// Write a float to external process memory.
-		/// </summary>
-		/// <param name="Proc">Process to which to write.</param>
-		/// <param name="pointerInstance">Pointer object containing adresses and offsets.</param>
-		/// <param name="Value">Value to write to memory.</param>
-		public static void WritePointerFloat(Process Proc, Pointer pointerInstance, float Value)
-		{
-			checked
-			{
-				try
-				{
-					if (Proc != null)
-					{
-						if (pointerInstance.BaseModuleAddress != 0x0)
-						{
-							Int64 Bytes = 0;
-							int Handle = OpenProcess(PROCESS_ALL_ACCESS, 0, Proc.Id);
-							Int64 Pointer = pointerInstance.BaseModuleAddress + pointerInstance.BaseOffset;
-
-							if (Handle != 0)
-							{
-								if (pointerInstance.IsDirectPointer)
-								{
-									WriteProcessMemoryFloat(Handle, Pointer, ref Value, 4, ref Bytes);
-									CloseHandle(Handle);
-								}
-								else
-								{
-									foreach (int i in pointerInstance.Offsets)
-									{
-										ReadProcessMemoryInteger64((int)Handle, Pointer, ref Pointer, pointerInstance.IsPtrFor64BitProcess ? 8 : 4, ref Bytes);
-										Pointer += i;
-									}
-									WriteProcessMemoryFloat(Handle, Pointer, ref Value, 4, ref Bytes);
-									CloseHandle(Handle);
-								}
-							}
-						}
-						else
-						{
-							GetModuleBaseAddress(Proc, pointerInstance);
-						}
-					}
-				}
-				catch
-				{ }
-			}
-		}
-
-		/// <summary>
-		/// Write a double to external process memory.
-		/// </summary>
-		/// <param name="Proc">Process to which to write.</param>
-		/// <param name="pointerInstance">Pointer object containing adresses and offsets.</param>
-		/// <param name="Value">Value to write to memory.</param>
-		public static void WritePointerDouble(Process Proc, Pointer pointerInstance, double Value)
-		{
-			checked
-			{
-				try
-				{
-					if (Proc != null)
-					{
-						if (pointerInstance.BaseModuleAddress != 0x0)
-						{
-							Int64 Bytes = 0;
-							int Handle = OpenProcess(PROCESS_ALL_ACCESS, 0, Proc.Id);
-							Int64 Pointer = pointerInstance.BaseModuleAddress + pointerInstance.BaseOffset;
-
-							if (Handle != 0)
-							{
-								if (pointerInstance.IsDirectPointer)
-								{
-									WriteProcessMemoryDouble(Handle, Pointer, ref Value, 8, ref Bytes);
-									CloseHandle(Handle);
-								}
-								else
-								{
-									foreach (int i in pointerInstance.Offsets)
-									{
-										ReadProcessMemoryInteger64((int)Handle, Pointer, ref Pointer, pointerInstance.IsPtrFor64BitProcess ? 8 : 4, ref Bytes);
-										Pointer += i;
-									}
-									WriteProcessMemoryDouble(Handle, Pointer, ref Value, 8, ref Bytes);
-									CloseHandle(Handle);
-								}
-							}
-						}
-						else
-						{
-							GetModuleBaseAddress(Proc, pointerInstance);
-						}
-					}
-				}
-				catch
-				{ }
-			}
-		}
 	}
 
 	/// <summary>
