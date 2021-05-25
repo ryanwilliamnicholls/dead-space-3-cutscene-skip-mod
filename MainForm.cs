@@ -124,11 +124,30 @@ namespace Flying47
                         }
                     }
 
+                    //reset the cutscene count when the checkpoint changes
                     if(!byteArrayEquals(cpHex, lastcpHex))
                     {
                         lastcpHex = cpHex;
                         cutscenesSeen = 0;
                     }
+
+                    //Checkpoint specific fixes
+
+                    //Before final boss, first time you enter this cutscene the checkpoint fires in the cutscene itself, but the checkpoint loads you before the cutscene
+                    // this leads to different cutscene counts if you die or reload in that jump sequence.
+                    // this will increment the value up to what its meant to be in the first instance
+                    if(byteArrayEquals(cpHex, new byte[] { 0xDB, 0xFE, 0xA0, 0x31, 0x50, 0xE8, 0x28, 0xF6, 0x59, 0x4D, 0x55, 0x52, 0x50, 0x48, 0x59, 0x30 }) && inCutsceneInt == 0 && cutscenesSeen == 0)
+                    {
+                        cutscenesSeen++;
+                    }
+
+
+
+
+
+
+
+
 
                     ShouldReload.Text = shouldSkip ? "Waiting for cutscene to skip" : "Checkpoint reload to skip this cutscene!";
                     ShouldReload.ForeColor = shouldSkip ? Color.Red : Color.Green;
@@ -137,7 +156,7 @@ namespace Flying47
                     {
                         hex.AppendFormat("{0:x2} ", b);
                     }
-                    CheckpointVal.Text = hex.ToString();
+                    CheckpointVal.Text = cutscenesSeen + " " + hex.ToString();
                    
 
                     InCutsceneBool.Text = inCutsceneInt == 0 ? "True" : "False";
