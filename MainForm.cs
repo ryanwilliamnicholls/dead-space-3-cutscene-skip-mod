@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 
@@ -35,10 +36,34 @@ namespace Flying47
         /*------------------
         -- INITIALIZATION --
         ------------------*/
+        public const int WM_NCLBUTTONDOWN = 0xA1;
+        public const int HT_CAPTION = 0x2;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
+        public static String version = "1.1.1";
+
+        private void Form1_MouseDown(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                ReleaseCapture();
+                SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
+            } else if (e.Button == MouseButtons.Right)
+            {
+                contextMenuStrip1.Show(this, new Point(e.X, e.Y));
+            }
+        }
+
         public MainForm()
         {
             InitializeComponent();
             CheckpointLookup.initialiseSwapTable();
+            toolStripVersion.Text = "Version " + version;
+            this.TopMost = true;
         }
 
         private void MainForm_Shown(object sender, EventArgs e)
@@ -80,7 +105,7 @@ namespace Flying47
                 if (foundProcess)
                 {
                     // The game is running, ready for memory reading.
-                    LB_Running.Text = processName + " is running";
+                    LB_Running.Text = "Dead Space 3 is running";
                     LB_Running.ForeColor = Color.Green;
 
                     cpHex = Trainer.ReadPointerByteArray(myProcess, checkpointHex, 16);
@@ -141,31 +166,21 @@ namespace Flying47
                         cutscenesSeen++;
                     }
 
-
-
-
-
-
-
-
-
-                    ShouldReload.Text = shouldSkip ? "Waiting for cutscene to skip" : "Checkpoint reload to skip this cutscene!";
-                    ShouldReload.ForeColor = shouldSkip ? Color.Red : Color.Green;
+                    ShouldReload.Text = (shouldSkip || cpHex[0].Equals(0x00)) ? "Waiting for cutscene to skip" : "Checkpoint reload to skip this cutscene!";
+                    ShouldReload.ForeColor = (shouldSkip || cpHex[0].Equals(0x00)) ? Color.Red : Color.Green;
                     StringBuilder hex = new StringBuilder(cpHex.Length * 2);
                     foreach (byte b in cpHex)
                     {
                         hex.AppendFormat("{0:x2} ", b);
                     }
-                    CheckpointVal.Text = cutscenesSeen + " " + hex.ToString();
                    
 
-                    InCutsceneBool.Text = inCutsceneInt == 0 ? "True" : "False";
                     TTimer.Interval = 100;
                 }
                 else
                 {
                     // The game process has not been found, reseting values.
-                    LB_Running.Text = processName + " is not running";
+                    LB_Running.Text = "Dead Space 3 is not running";
                     LB_Running.ForeColor = Color.Red;
                     ResetValues();
                 }
@@ -188,53 +203,22 @@ namespace Flying47
         // Used to reset all the values.
         private void ResetValues()
         {
-            InCutsceneBool.Text = "False";
             ShouldReload.Text =  "Waiting for cutscene to skip";
             ShouldReload.ForeColor = Color.Red;
-            CheckpointVal.Text = "######";
         }
 
-        private void L_X_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void tableLayoutPanel1_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
 
         private void LB_Running_Click(object sender, EventArgs e)
         {
 
         }
 
-        private void label1_Click(object sender, EventArgs e)
+        private void close_Click(object sender, EventArgs e)
         {
-
+            this.Close();
         }
 
-        private void label1_Click_1(object sender, EventArgs e)
-        {
-
-        }
-
-        private void MainForm_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label3_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label2_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label1_Click_2(object sender, EventArgs e)
+        private void contextMenuStrip1_Opening(object sender, System.ComponentModel.CancelEventArgs e)
         {
 
         }
